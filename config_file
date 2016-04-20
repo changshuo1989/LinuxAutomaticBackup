@@ -1,0 +1,2 @@
+#m h dom mon dow local_folder backup_host backup_folder backup_type(full/incremental:f/i:F/I) backup_count
+*/1 * * * * /home/moe/backupTest smithers@10.13.37.30 /home/smithers/backupDroplet I 3
