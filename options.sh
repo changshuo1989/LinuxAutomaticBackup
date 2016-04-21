@@ -24,7 +24,8 @@ do
 			exit 1
 		;;
 		d)
-			echo "choose d"
+			timestamp=$ date "+%Y-%m-%d_%H:%M:%S:%N"
+			#echo "$timestamp"
 			exit 1
 		;;
 		f)

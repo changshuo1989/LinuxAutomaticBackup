@@ -17,13 +17,16 @@ PASSPHRASE="Unknown"
 KEY="Unknown"
 
 #config variables
-CONFIG_FILE_NUM=10
+CONFIG_FILE_NUM=11
 
 #cronjobs
 CRON_JOBS=()
 
 #scripts directory
-SCRIPT_DIR=~/backup_scripts
+SCRIPT_DIR=~/backups/
+
+#temp crontab file
+TEMP_CRONTAB=mycron
 
 #duplicity log file
 LOG_DIR=/var/log/duplicity/
@@ -33,15 +36,51 @@ LOG_FILE=etc.log
 
 #functions
 function writeIntoFile(){
+	#get parameters
+	content="$1"
+
+	#create directory
 	mkdir -p $SCRIPT_DIR
 	#naming script file based on timestamp
+	desdir=${SCRIPT_DIR}$(date +%Y-%m-%d_%H:%M:%S:%N).sh
+	#echo "$desdir"
+	touch ${desdir}
+	if [ -f "$desdir" ]; then
+		echo -e "$content" > ${desdir}
+	fi
 	
+	#return value
+	echo $desdir
+}
 
-
+function createLog(){
+	#create log file for duplicity
+	mkdir -p ${LOG_DIR}
+	touch ${LOG_DIR}${LOG_FILE}
 }
 
 
+function copyCrontab(){
+	crontab -l > ${TEMP_CRONTAB}
+}
 
+
+function addIntoCrontab(){
+	#get parameters
+	dir_name="$1" 
+	#echo -e "$dir_name \n"
+	sch="$2"
+	#echo -e "$sch \n"
+	temp_dir="$3"
+	#echo -e "$temp_dir \n" 
+	command="${sch} $(which bash) ${dir_name}"
+	echo "${command}" >> ${temp_dir}
+}
+
+function loadCrontab(){
+	crontab ${TEMP_CRONTAB}
+	rm -rf ${TEMP_CRONTAB}
+}
 
 
 
@@ -55,12 +94,23 @@ if [ ! "`whoami`" = "root" ]; then
 
 fi
 
-#Ensure we have duplicity
-if [ "`which duplicity`" = ""  ]; then
-	echo "Error: You have to install duplicity to run this script!;"
+#Ensure we have bash
+if [ "`which bash`" = "" ]; then
+	echo "Error: You have to install bash to run this script!"
 	exit 1;
 fi
 
+#Ensure we have duplicity
+if [ "`which duplicity`" = ""  ]; then
+	echo "Error: You have to install duplicity to run this script!"
+	exit 1;
+fi
+
+#Ensure we have crontab
+if [ "`which crontab`" = "" ]; then
+	echo "Error: You have to install cron stuff to run this script!"
+	exit 1;
+fi
 
 #Ensure we have enryption file
 if [ ! -f $ENCRYPTION_FILE ]; then
@@ -164,70 +214,140 @@ do
 done < $ENCRYPTION_FILE
 
 
-#read config file
-i=0;
-while read LINE
-do
-	#configuration variables
-	m="*";
-	h="*";
-	dom="*";
-	mon="*";
-	dow="*";
-	local_folder="";
-	backup_host="";
-	backup_folder="";
-	backup_type="";	
-	backup_save="";
-	if [[ ! $LINE == \#* ]]; then
-		#read variables from config file
-		IFS=' ' read -a CONFIG_ARRAY <<< "$LINE";
-		if [ ${#CONFIG_ARRAY[@]} == $CONFIG_FILE_NUM ]; then
-			m=${CONFIG_ARRAY[0]};
-			h=${CONFIG_ARRAY[1]};
-			dom=${CONFIG_ARRAY[2]};
-			mon=${CONFIG_ARRAY[3]};
-			dow=${CONFIG_ARRAY[4]};
-			local_folder=${CONFIG_ARRAY[5]};
-			backup_host=${CONFIG_ARRAY[6]};
-			backup_folder=${CONFIG_ARRAY[7]};
-			backup_type=${CONFIG_ARRAY[8]};
-			backup_save=${CONFIG_ARRAY[9]};
+copyCrontab
 
-			#validate the backup_type
-			if [ ${backup_type:0:1} = i ] || [ ${backup_type:0:1} = I ]; then
-				backup_type="incremental";
-			elif [ ${backup_type:0:1} = f ]	|| [ ${backup_type:0:1} = F ]; then		
-				backup_type="full";
+if [ $FILE_MODE==1 ] && [ $DATABASE_MODE==0 ]; then 
+	#read config file
+	i=0;
+	while read LINE
+	do
+		#configuration variables
+		m="*";
+		h="*";
+		dom="*";
+		mon="*";
+		dow="*";
+		local_folder="";
+		backup_host="";
+		backup_folder="";
+		backup_type="";	
+		backup_save="";
+		time_save="";
+		if [[ ! $LINE == \#* ]]; then
+			#read variables from config file
+			IFS=' ' read -a CONFIG_ARRAY <<< "$LINE";
+			if [ ${#CONFIG_ARRAY[@]} == $CONFIG_FILE_NUM ]; then
+				m=${CONFIG_ARRAY[0]};
+				h=${CONFIG_ARRAY[1]};
+				dom=${CONFIG_ARRAY[2]};
+				mon=${CONFIG_ARRAY[3]};
+				dow=${CONFIG_ARRAY[4]};
+				local_folder=${CONFIG_ARRAY[5]};
+				backup_host=${CONFIG_ARRAY[6]};
+				backup_folder=${CONFIG_ARRAY[7]};
+				backup_type=${CONFIG_ARRAY[8]};
+				backup_save=${CONFIG_ARRAY[9]};
+				time_save=${CONFIG_ARRAY[10]};
+				#validate the backup_type
+				if [[  "$backup_type" == i* ]] || [[ "$backup_type" == I* ]]; then
+					backup_type="incremental";
+				elif [[ "$backup_type" == f* ]] || [[ "$backup_type" == F* ]]; then		
+					backup_type="full";	
+				elif [ "$backup_type" == '*' ]; then
+					backup_type="";
+				else
+					echo "Error: config file invalid!";
+					exit 1;	
+				fi
+				
+				has_backup_save=false
+				has_time_save=false
+				#validate the backup_save
+				re='^[0-9]+$'
+				if [[ "$backup_save" =~ $re ]]; then
+					has_backup_save=true;
+					#echo "$has_backup_save";
+
+				elif [ "$backup_save" = '*' ]; then
+				
+					has_backup_save=false;
+					#echo "$has_backup_save";
+				else
+					echo "Error: config file invalid!";
+					exit 1;
+				fi
+				
+				#validate the time_save
+				
+				if [ "$time_save" = '*' ]; then
+					has_time_save=false;
+				
+				else
+					has_time_save=true;
+				fi
+				
+				
+				#fomat script
+				schedule="${m} ${h} ${dom} ${mon} ${dow}";
+				head="#${schedule}\n#!/bin/bash\n";
+				dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+				if [ "$has_backup_save" = true ]; then
+					b="$(which duplicity) remove-all-but-n-full ${backup_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					dup=$dup'\n'$b;
+					#echo  -e "$dup";
+				fi
+
+				if [ "$has_time_save" = true ]; then
+					b="$(which duplicity) remove-older-than ${time_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					dup=$dup'\n'$b;
+					#echo -e "$dup";		
+				fi
+				
+				context=$head$dup;
+				#echo -e "$context";
+				dir=$(writeIntoFile "$context")
+				addIntoCrontab "$dir" "$schedule" "$TEMP_CRONTAB"
+				#echo $dir
+				#cronjob="${m} ${h} ${dom} ${mon} ${dow} (${dup}) >/dev/null 2>&1";
+				#writeIntoFile "$cronjob"
+				#echo "$cronjob";
+				#CRON_JOBS[$i]=${cronjob};
+				#echo "${CRON_JOBS[$i]}";			
+				i=$((i+1));
+
 			else
-				echo "Error: config file invalid!";
-				exit 1;	
+				echo "Error: config file invalid!"
+				exit 1
 			fi
-			
-			#fomat cronjob
-			dup="PASSPHRASE=\"${PASSPHRASE}\" $(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
-			
-			cronjob="${m} ${h} ${dom} ${mon} ${dow} (${dup}) >/dev/null 2>&1";
-			echo "$cronjob";
-			CRON_JOBS[$i]=${cronjob};
-			#echo "${CRON_JOBS[$i]}";
-			i=$((i+1));
-		fi
 			 	
-	fi
-done < $CONFIG_FILE
+		fi
+	done < $CONFIG_FILE
 
+elif [ $FILE_MODE==0 ] && [ $DATABASE_MODE==1 ]; then
+
+	
+
+
+
+
+fi
+
+
+createLog
+loadCrontab
+
+#TODO
 #copy crontab
-crontab -l > mycron
+#crontab -l > mycron
 #add these cronjobs to the crontab
-for j in "${CRON_JOBS[@]}"
-do
-	echo "${j}" >> mycron
-done
+#for j in "${CRON_JOBS[@]}"
+#do
+#	echo "${j}" >> mycron
+#done
 #install crontab
-crontab mycron
+#crontab mycron
 #create log file for duplicity
-mkdir -p ${LOG_DIR}
-touch ${LOG_DIR}${LOG_FILE}
+#mkdir -p ${LOG_DIR}
+#touch ${LOG_DIR}${LOG_FILE}
 #delete temp crontab file
-rm mycron
+#rm mycron
