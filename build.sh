@@ -18,7 +18,7 @@ KEY="Unknown"
 
 #config variables
 CONFIG_FILE_NUM=11
-
+CONFIG_DB_NUM=15
 #cronjobs
 CRON_JOBS=()
 
@@ -324,11 +324,53 @@ if [ $FILE_MODE==1 ] && [ $DATABASE_MODE==0 ]; then
 	done < $CONFIG_FILE
 
 elif [ $FILE_MODE==0 ] && [ $DATABASE_MODE==1 ]; then
-
+	#read config file
+	j=0;
+	while read LINE
+	do
+		#configuration variables
+		m="*"
+		h="*"
+		dom="*"
+		mon="*"
+		dow="*"
+		db_host=""
+		user_name=""
+		password=""
+		dbname=""
+		local_folder=""
+		backup_host=""
+		backup_folder=""
+		backup_type=""
+		backup_save=""
+		time_save=""	
+		if [[ ! $LINE == \#* ]]; then
+			IFS=' ' read -a DB_ARRAY <<< "$LINE";
+			if [ ${#DB_ARRAY[@]} == $CONFIG_DB_NUM ]; then
+				m=${DB_ARRAY[0]};
+				h=${DB_ARRAY[1]};
+				dom=${DB_ARRAY[2]};
+				mon=${DB_ARRAY[3]};
+				dow=${DB_ARRAY[4]};
+				db_host=${DB_ARRAY[5]};
+				user_name=${DB_ARRAY[6]};
+				password=${DB_ARRAY[7]};
+				dbname=${DB_ARRAY[8]};
+				local_folder=${DB_ARRAY[9]};
+				backup_host=${DB_ARRAY[10]};
+				backup_folder=${DB_ARRAY[11]};
+				backup_type=${DB_ARRAY[12]};
+				backup_save=${DB_ARRAY[13]};
+				time_save=${DB_ARRAY[14]};
+				#TODO	
+			else
+                                echo "Error: db config file invalid!"
+                                exit 1
 	
+			fi
+		fi
 
-
-
+	done < $CONFIG_DB
 
 fi
 
