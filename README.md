@@ -1,9 +1,27 @@
+In order to make this cript working, you have to 
+1. install some software inadvance, however if you miss some software, this software will give you a hint(duplicity, cron) 
+2. generate gng key for encryption/decryption and write the passphrase and key into the encrytion file
+
+
+
 Before run this script please manually check several things
 1. check the crontab (type crontab -e)
 2. check the place where store the sscripts( default under /root/backups/)
 3. check the log file(default under /var/log/duplicity/etc.log)
+4. if you run this script with database mode(-d), please check the folder that you assign in the config_db file for storing the db dump files.
 
-Secondly, the -t, --time, and --restore-time options take a time string, which can be given in any of several formats:
+
+When doing configration, please make sure you follows these rules:
+1. all the directory should be absolute path
+2. no space for each variable
+3. if you don't want to assgin some specific variable, you can type * for N/A
+4. for time_save variable please follow the time_format rule
+
+
+
+
+
+time_format:
 
 1.
 the string "now" (refers to the current time)

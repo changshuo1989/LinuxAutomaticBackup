@@ -17,8 +17,8 @@ PASSPHRASE="Unknown"
 KEY="Unknown"
 
 #config variables
-CONFIG_FILE_NUM=11
-CONFIG_DB_NUM=16
+CONFIG_FILE_NUM=13
+CONFIG_DB_NUM=18
 #cronjobs
 CRON_JOBS=()
 
@@ -31,10 +31,12 @@ SCRIPT_DIR=~/backups/
 #temp crontab file
 TEMP_CRONTAB=mycron
 
-#duplicity log file
+#temp log file
+TEMP_LOG=mylog
+
+#duplicity log dirctroy(remote) and file
 LOG_DIR=/var/log/duplicity/
 LOG_FILE=etc.log
-
 
 
 #functions
@@ -283,9 +285,11 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 		dom="*";
 		mon="*";
 		dow="*";
+		interval="*";
 		local_folder="";
 		backup_host="";
 		backup_folder="";
+		remote_log_dir="*";
 		backup_type="";	
 		backup_save="";
 		time_save="";
@@ -298,12 +302,14 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				dom=${CONFIG_ARRAY[2]};
 				mon=${CONFIG_ARRAY[3]};
 				dow=${CONFIG_ARRAY[4]};
-				local_folder=${CONFIG_ARRAY[5]};
-				backup_host=${CONFIG_ARRAY[6]};
-				backup_folder=${CONFIG_ARRAY[7]};
-				backup_type=${CONFIG_ARRAY[8]};
-				backup_save=${CONFIG_ARRAY[9]};
-				time_save=${CONFIG_ARRAY[10]};
+				interval=${CONFIG_ARRAY[5]};
+				local_folder=${CONFIG_ARRAY[6]};
+				backup_host=${CONFIG_ARRAY[7]};
+				backup_folder=${CONFIG_ARRAY[8]};
+				remote_log_dir=${CONFIG_ARRAY[9]};
+				backup_type=${CONFIG_ARRAY[10]};
+				backup_save=${CONFIG_ARRAY[11]};
+				time_save=${CONFIG_ARRAY[12]};
 				#validate the backup_type
                                 backup_type=$(validateBackupType "$backup_type")
                                 if [ "$backup_type" = "ERROR" ]; then
@@ -314,17 +320,24 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				#backup_save
                                 has_backup_save=$(validateBackupSave "$backup_save")
                                 if [ "$has_backup_save" = "ERROR" ]; then
-                                        echo "ERROR: dbconfig file invalid!"
+                                        echo "ERROR: config file invalid!"
                                         exit 1
                                 fi
                                 #time_save
                                 has_time_save=$(validateTimeSave "$time_save")
                                 if [ "$has_time_save" = "ERROR" ]; then
-                                        echo "ERROR: dbconfig file invalid!"
+                                        echo "ERROR: config file invalid!"
                                         exit 1
                                 fi
+				#interval
+				has_interval=$(validateBackupSave "$interval")
+				if [ "$has_interval" = "ERROR" ]; then
+					echo "ERROR: config file invalid!"
+					exit 1
+					
+				fi
 				
-				#fomat script
+				#format script
 				schedule="${m} ${h} ${dom} ${mon} ${dow}";
 				head="#${schedule}\n#!/bin/bash\n";
 				dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
@@ -372,6 +385,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 		dom="*"
 		mon="*"
 		dow="*"
+		interval="*"
 		db_host=""
 		user_name=""
 		password=""
@@ -379,6 +393,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 		local_folder=""
 		backup_host=""
 		backup_folder=""
+		remote_log_dir=""
 		backup_type=""
 		backup_save=""
 		time_save=""	
@@ -390,17 +405,19 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 				dom=${DB_ARRAY[2]};
 				mon=${DB_ARRAY[3]};
 				dow=${DB_ARRAY[4]};
-				db_host=${DB_ARRAY[5]};
-				user_name=${DB_ARRAY[6]};
-				password=${DB_ARRAY[7]};
-				dbname=${DB_ARRAY[8]};
-				local_folder=${DB_ARRAY[9]};
-				backup_host=${DB_ARRAY[10]};
-				backup_folder=${DB_ARRAY[11]};
-				backup_type=${DB_ARRAY[12]};
-				backup_save=${DB_ARRAY[13]};
-				time_save=${DB_ARRAY[14]};
-				dump_save=${DB_ARRAY[15]};
+				interval=${DB_ARRAY[5]};
+				db_host=${DB_ARRAY[6]};
+				user_name=${DB_ARRAY[7]};
+				password=${DB_ARRAY[8]};
+				dbname=${DB_ARRAY[9]};
+				local_folder=${DB_ARRAY[10]};
+				backup_host=${DB_ARRAY[11]};
+				backup_folder=${DB_ARRAY[12]};
+				remote_log_dir=${DB_ARRAY[13]};
+				backup_type=${DB_ARRAY[14]};
+				backup_save=${DB_ARRAY[15]};
+				time_save=${DB_ARRAY[16]};
+				dump_save=${DB_ARRAY[17]};
 				#TODO:need to finish database
 				#validate these variables
 				#db_host
@@ -440,6 +457,14 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 					echo "ERROR: dbconfig file invalid!"		
 					exit 1
 				fi
+				#interval
+                                has_interval=$(validateBackupSave "$interval")
+                                if [ "$has_interval" = "ERROR" ]; then
+                                        echo "ERROR: config file invalid!"
+                                        exit 1
+
+                                fi
+
 				#validate mysql connection
 				echo "validate mysql connection..."
 				if [ "$dbname" = '*' ]; then
