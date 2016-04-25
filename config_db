@@ -1,3 +1,3 @@
-#ONLY SUPPORT LOCAL MYSQL!
-#m h dom mon dow db_host username password dbname(all) local_folder backup_host backup_folder backup_type backups_save time_save
-*/1 * * * * 10.13.37.3 root root all /home/moe/dbTest smithers@10.13.37.30 /home/smithers/dbDroplet full 3 1Y 
+#ONLY SUPPORT MYSQL!
+#m h dom mon dow db_host username password dbname(*) local_folder(best if it's a empty folder) backup_host backup_folder backup_type backups_save time_save dump_save_minutes
+*/2 * * * * 10.13.37.3 root root Test /home/moe/dbTest/ smithers@10.13.37.30 /home/smithers/dbDroplet * 2 1Y 5
