@@ -1,2 +1,2 @@
 #m h dom mon dow interval(min) local_folder backup_host backup_folder remote_log_folder backup_type(*/full/incremental:*/f/i:*/F/I) backup_save(*) years_save(*)
-* 4 * * * 240 /home/moe/backupTest smithers@10.13.37.30 /home/smithers/backupDroplet /home/smithers/log/file * 2 1Y
+*/2 * * * * 3 /home/moe/backupTest smithers@10.13.37.30 /home/smithers/backupDroplet /home/smithers/log/file * 2 1Y

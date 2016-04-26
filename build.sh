@@ -32,7 +32,7 @@ SCRIPT_DIR=~/backups/
 TEMP_CRONTAB=mycron
 
 #temp log file
-TEMP_LOG=mylog
+TEMP_LOG=log
 
 #duplicity log dirctroy(remote) and file
 LOG_DIR=/var/log/duplicity/
@@ -340,7 +340,29 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				#format script
 				schedule="${m} ${h} ${dom} ${mon} ${dow}";
 				head="#${schedule}\n#!/bin/bash\n";
-				dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+				dup="";
+				if [ "$remote_log_dir" != '*' ]; then
+				
+					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${TEMP_LOG}";
+					#add into log
+					#cat ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}
+					temp_log="$(which cat) ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}"
+					if [ "$has_interval" = true ]; then
+						temp_interval="$(which echo) \"Interval ${interval}\" >> ${TEMP_LOG}"
+						temp_log=$temp_log'\n'$temp_interval
+					fi
+					
+					dup=$dup'\n'$temp_log
+					#log_dup="$(which duplicity) full --no-encryption ${TEMP_LOG} sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \n$(which duplicity) remove-all-but-n-full 1 --force sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG}";
+					#dup=$dup'\n'$log_dup
+					log_copy="$(which scp) ${TEMP_LOG} ${backup_host}:${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG} ";
+					dup=$dup'\n'$log_copy		
+
+				else
+					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+
+				fi
+
 				if [ "$has_backup_save" = true ]; then
 					b="$(which duplicity) remove-all-but-n-full ${backup_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
 					dup=$dup'\n'$b;
@@ -357,6 +379,7 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				#echo -e "$context";
 				dir=$(writeIntoFile "$context")
 				addIntoCrontab "$dir" "$schedule" "$TEMP_CRONTAB"
+
 				#echo $dir
 				#cronjob="${m} ${h} ${dom} ${mon} ${dow} (${dup}) >/dev/null 2>&1";
 				#writeIntoFile "$cronjob"
@@ -510,7 +533,24 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 					dump=$remove_old_dumps' \n'$dump
 				fi
 				#duplicity part
-				dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+				dup=""
+				if [ "$remote_log_dir" != '*' ]; then
+					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${TEMP_LOG}";
+					#add into log
+                                        #cat ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}
+                                        temp_log="$(which cat) ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}"
+                                        if [ "$has_interval" = true ]; then
+                                                temp_interval="$(which echo) \"Interval ${interval}\" >> ${TEMP_LOG}"
+                                                temp_log=$temp_log'\n'$temp_interval
+                                        fi
+					dup=$dup'\n'$temp_log
+                                        #log_dup="$(which duplicity) full --no-encryption ${TEMP_LOG} sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \n$(which duplicity) remove-all-but-n-full 1 --force sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG}";
+                                        #dup=$dup'\n'$log_dup
+                                        log_copy="$(which scp) ${TEMP_LOG} ${backup_host}:${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG} ";
+                                        dup=$dup'\n'$log_copy
+				else
+					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+				fi
 				if [ "$has_backup_save" = true ]; then
 					b="$(which duplicity) remove-all-but-n-full ${backup_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
 					dup=$dup'\n'$b;
