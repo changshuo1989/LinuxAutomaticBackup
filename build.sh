@@ -35,7 +35,7 @@ TEMP_CRONTAB=mycron
 TEMP_LOG=log
 
 #duplicity log dirctroy(remote) and file
-LOG_DIR=/var/log/duplicity/
+LOG_DIR=/var/log/backups/
 LOG_FILE=etc.log
 
 
@@ -289,7 +289,7 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 		local_folder="";
 		backup_host="";
 		backup_folder="";
-		remote_log_dir="*";
+		remote_log_file="*";
 		backup_type="";	
 		backup_save="";
 		time_save="";
@@ -306,7 +306,7 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				local_folder=${CONFIG_ARRAY[6]};
 				backup_host=${CONFIG_ARRAY[7]};
 				backup_folder=${CONFIG_ARRAY[8]};
-				remote_log_dir=${CONFIG_ARRAY[9]};
+				remote_log_file=${CONFIG_ARRAY[9]};
 				backup_type=${CONFIG_ARRAY[10]};
 				backup_save=${CONFIG_ARRAY[11]};
 				time_save=${CONFIG_ARRAY[12]};
@@ -341,7 +341,7 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				schedule="${m} ${h} ${dom} ${mon} ${dow}";
 				head="#${schedule}\n#!/bin/bash\n";
 				dup="";
-				if [ "$remote_log_dir" != '*' ]; then
+				if [ "$remote_log_file" != '*' ]; then
 				
 					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${TEMP_LOG}";
 					#add into log
@@ -355,7 +355,7 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 					dup=$dup'\n'$temp_log
 					#log_dup="$(which duplicity) full --no-encryption ${TEMP_LOG} sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \n$(which duplicity) remove-all-but-n-full 1 --force sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG}";
 					#dup=$dup'\n'$log_dup
-					log_copy="$(which scp) ${TEMP_LOG} ${backup_host}:${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG} ";
+					log_copy="$(which scp) ${TEMP_LOG} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG} ";
 					dup=$dup'\n'$log_copy		
 
 				else
@@ -416,7 +416,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 		local_folder=""
 		backup_host=""
 		backup_folder=""
-		remote_log_dir=""
+		remote_log_file=""
 		backup_type=""
 		backup_save=""
 		time_save=""	
@@ -436,7 +436,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 				local_folder=${DB_ARRAY[10]};
 				backup_host=${DB_ARRAY[11]};
 				backup_folder=${DB_ARRAY[12]};
-				remote_log_dir=${DB_ARRAY[13]};
+				remote_log_file=${DB_ARRAY[13]};
 				backup_type=${DB_ARRAY[14]};
 				backup_save=${DB_ARRAY[15]};
 				time_save=${DB_ARRAY[16]};
@@ -534,7 +534,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 				fi
 				#duplicity part
 				dup=""
-				if [ "$remote_log_dir" != '*' ]; then
+				if [ "$remote_log_file" != '*' ]; then
 					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${TEMP_LOG}";
 					#add into log
                                         #cat ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}
@@ -546,7 +546,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 					dup=$dup'\n'$temp_log
                                         #log_dup="$(which duplicity) full --no-encryption ${TEMP_LOG} sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \n$(which duplicity) remove-all-but-n-full 1 --force sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG}";
                                         #dup=$dup'\n'$log_dup
-                                        log_copy="$(which scp) ${TEMP_LOG} ${backup_host}:${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG} ";
+                                        log_copy="$(which scp) ${TEMP_LOG} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG} ";
                                         dup=$dup'\n'$log_copy
 				else
 					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";

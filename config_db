@@ -1,4 +1,4 @@
 #ONLY SUPPORT MYSQL!
-#m h dom mon dow interval(min) db_host username password dbname(*) local_folder(best if it's a empty folder) backup_host backup_folder remote_log_folder backup_type backups_save time_save dump_save_minutes
-*/2 * * * * 3 10.13.37.3 root root Test /home/moe/dbTest/ smithers@10.13.37.30 /home/smithers/dbDroplet /home/smithers/log/db f 2 1Y 8
+#m h dom mon dow interval(min) db_host username password dbname(*) local_folder(best if it's a empty folder) backup_host backup_folder remote_log_file backup_type backups_save time_save dump_save_minutes
+*/18 * * * * 25 10.13.37.3 root root * /home/moe/dbTest/ smithers@10.13.37.30 /home/smithers/dbDroplet /home/smithers/log/db/dblog f 2 1Y 8
 #*/2 * * * * 3 10.13.37.3 root root Test /home/moe/dbTest/ smithers@10.13.37.30 
