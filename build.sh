@@ -3,6 +3,7 @@
 #This is the script which is intended to create one or more cron jobs for backups.
 #This script will read configure file and add cron jobs to the crontab
 
+
 #options
 FILE_MODE=1
 DATABASE_MODE=0
@@ -32,11 +33,14 @@ SCRIPT_DIR=~/backups/
 TEMP_CRONTAB=mycron
 
 #temp log file
-TEMP_LOG=log
-
-#duplicity log dirctroy(remote) and file
+DB_TEMP_LOG=db_log_
+FILE_TEMP_LOG=file_log_
+#duplicity log directory(remote) and file
 LOG_DIR=/var/log/backups/
 LOG_FILE=etc.log
+#scripts log directory and file
+SLOG_DIR=/var/log/backups/
+SLOG_FILE=scripts.log
 
 
 #functions
@@ -62,6 +66,9 @@ function createLog(){
 	#create log file for duplicity
 	mkdir -p ${LOG_DIR}
 	touch ${LOG_DIR}${LOG_FILE}
+	#create log file for scripts
+	mkdir -p ${SLOG_DIR}
+	touch ${SLOG_DIR}${SLOG_FILE}
 }
 
 
@@ -78,8 +85,8 @@ function addIntoCrontab(){
 	#echo -e "$sch \n"
 	temp_dir="$3"
 	#echo -e "$temp_dir \n" 
-	command="${sch} $(which bash) ${dir_name}"
-	echo "${command}" >> ${temp_dir}
+	entry="${sch} $(which bash) ${dir_name} >> ${SLOG_DIR}${SLOG_FILE} 2>&1"
+	echo "${entry}" >> ${temp_dir}
 }
 
 function loadCrontab(){
@@ -343,19 +350,17 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				dup="";
 				if [ "$remote_log_file" != '*' ]; then
 				
-					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${TEMP_LOG}";
+					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${FILE_TEMP_LOG}${i}";
 					#add into log
 					#cat ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}
-					temp_log="$(which cat) ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}"
+					temp_log="$(which cat) ${FILE_TEMP_LOG}${i} >> ${LOG_DIR}${LOG_FILE}"
 					if [ "$has_interval" = true ]; then
-						temp_interval="$(which echo) \"Interval ${interval}\" >> ${TEMP_LOG}"
+						temp_interval="$(which echo) \"Interval ${interval}\" >> ${FILE_TEMP_LOG}${i}"
 						temp_log=$temp_log'\n'$temp_interval
 					fi
 					
 					dup=$dup'\n'$temp_log
-					#log_dup="$(which duplicity) full --no-encryption ${TEMP_LOG} sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \n$(which duplicity) remove-all-but-n-full 1 --force sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG}";
-					#dup=$dup'\n'$log_dup
-					log_copy="$(which scp) ${TEMP_LOG} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG} ";
+					log_copy="$(which scp) ${FILE_TEMP_LOG}${i} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${FILE_TEMP_LOG}${i}";
 					dup=$dup'\n'$log_copy		
 
 				else
@@ -522,7 +527,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 
 				dump=""
 				if [ "$dbname" = '*' ]; then
-					dump="$(which mysqldump) -u${user_name} -p${password} -h${db_host} --all-databases > ${dump_file_variable}"
+					dump="$(which mysqldump) -u${user_name} -p${password} -h${db_host} --events --ignore-table=mysql.events --all-databases > ${dump_file_variable}"
 				else
 					dump="$(which mysqldump) -u${user_name} -p${password} -h${db_host} ${dbname} > ${dump_file_variable}"
 				fi
@@ -535,18 +540,16 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 				#duplicity part
 				dup=""
 				if [ "$remote_log_file" != '*' ]; then
-					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${TEMP_LOG}";
+					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${DB_TEMP_LOG}${j}";
 					#add into log
                                         #cat ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}
-                                        temp_log="$(which cat) ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}"
+                                        temp_log="$(which cat) ${DB_TEMP_LOG}${j} >> ${LOG_DIR}${LOG_FILE}"
                                         if [ "$has_interval" = true ]; then
-                                                temp_interval="$(which echo) \"Interval ${interval}\" >> ${TEMP_LOG}"
+                                                temp_interval="$(which echo) \"Interval ${interval}\" >> ${DB_TEMP_LOG}${j}"
                                                 temp_log=$temp_log'\n'$temp_interval
                                         fi
 					dup=$dup'\n'$temp_log
-                                        #log_dup="$(which duplicity) full --no-encryption ${TEMP_LOG} sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \n$(which duplicity) remove-all-but-n-full 1 --force sftp://${backup_host}/${remote_log_dir} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG}";
-                                        #dup=$dup'\n'$log_dup
-                                        log_copy="$(which scp) ${TEMP_LOG} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${TEMP_LOG} ";
+                                        log_copy="$(which scp) ${DB_TEMP_LOG}${j} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${DB_TEMP_LOG}${j}";
                                         dup=$dup'\n'$log_copy
 				else
 					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
@@ -582,18 +585,3 @@ fi
 createLog
 loadCrontab
 
-#TODO
-#copy crontab
-#crontab -l > mycron
-#add these cronjobs to the crontab
-#for j in "${CRON_JOBS[@]}"
-#do
-#echo "${j}" >> mycron
-#done
-#install crontab
-#crontab mycron
-#create log file for duplicity
-#mkdir -p ${LOG_DIR}
-#touch ${LOG_DIR}${LOG_FILE}
-#delete temp crontab file
-#rm mycron
