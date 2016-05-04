@@ -1,7 +1,7 @@
 ==================================================================
 BEFORE RUN THIS SCRIPT
 ==================================================================		
-1. Make sure you are using Ubuntu server or similar linux version
+1. Make sure you are using Ubuntu server or similar linux version. If you are using bitnami operating system, you need to enable python by yourself.
 2. Install necessary software in advance. however if you miss some vital software, this script will give you a hint(duplicity, cron, etc)
 3. Generate ssh key for root user, and use ssh-copy-id command to pass this key to the backup side to enable password free ssh
 4. Generate gng key for data encryption/decryption and remember the passphrase and public key

@@ -7,7 +7,8 @@
 #options
 FILE_MODE=1
 DATABASE_MODE=0
-
+#bitnami
+BITNAMI=0
 #related files
 ENCRYPTION_FILE=./encryption
 CONFIG_FILE=./config_file
@@ -254,8 +255,17 @@ read -p "Are you sure you have manually checked your crontab? [Y/N]" USER_RESPON
 if echo $USER_RESPONSE | grep -iq Y; then
 	:
 else
-	echo "Error: please check your crontab!";
+	echo "Error: please check your crontab and related files!";
 	exit 1;
+fi
+
+
+#bitnami
+read -p "Are you using bitnami as your application management tool? [Y/N]" USER_RESPONSE
+if echo $USER_RESPONSE | grep -iq Y; then
+	BITNAMI=1;
+else 
+	BITNAMI=0;
 fi
 
 #read encryption file
@@ -347,6 +357,10 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				#format script
 				schedule="${m} ${h} ${dom} ${mon} ${dow}";
 				head="#${schedule}\n#!/bin/bash\n";
+				#bitnami
+				if [ "$BITNAMI" = 1 ]; then
+					head=$head". /opt/bitnami/scripts/setenv.sh\n";	
+				fi
 				dup="";
 				if [ "$remote_log_file" != '*' ]; then
 				
@@ -515,7 +529,10 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 				#format script
 				schedule="${m} ${h} ${dom} ${mon} ${dow}";
 				head="#${schedule}\n#!/bin/bash";
-				
+				#bitnami
+				if [ "$BITNAMI" = 1 ]; then
+					head=$head"\n. /opt/bitnami/scripts/setenv.sh";
+				fi
 				#db dump part
 				#set up directory and file
 				dump_dir=$(setDBDumpDirectory "$db_host" "$local_folder")
