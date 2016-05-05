@@ -5,7 +5,7 @@ BEFORE RUN THIS SCRIPT
 2. Install necessary software in advance. however if you miss some vital software, this script will give you a hint(duplicity, cron, etc)
 3. Generate ssh key for root user, and use ssh-copy-id command to pass this key to the backup side to enable password free ssh
 4. Generate gng key for data encryption/decryption and remember the passphrase and public key
-
+5. You may need to run duplicity test without automatic schedule to enable paramiko add known_host
 
 =================================================================
 CONFIGURATION
