@@ -1,3 +1,3 @@
-#m h dom mon dow interval(min) local_folder backup_host backup_folder remote_log_file backup_type(*/full/incremental:*/f/i:*/F/I) backup_save(*) years_save(*)
-0 2 * * * 1500 /srv/docker/gitlab/gitlab/backups backup@169.45.20.201 /HRS/Backup/Git /HRS/Backup/Log/Git/logfile f 1 1Y
+#m h dom mon dow interval(min) local_folder backup_host port(*) backup_folder remote_log_file backup_type(*/full/incremental:*/f/i:*/F/I) backup_save(*) years_save(*)
+0 2 * * * 1500 /srv/docker/gitlab/gitlab/backups m7hnqhfm8pr2gjkv@169.45.20.201 893 /HRS/Backup/Data/Git /HRS/Backup/Log/Git/backup.log f 1 1Y
 #*/3 * * * * 5 /srv/docker/gitlab/gitlab/backups maggie@10.13.37.18 /home/maggie/gitbackup /home/maggie/log/file/filelog f 1 *

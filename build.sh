@@ -18,8 +18,8 @@ PASSPHRASE="Unknown"
 KEY="Unknown"
 
 #config variables
-CONFIG_FILE_NUM=13
-CONFIG_DB_NUM=18
+CONFIG_FILE_NUM=14
+CONFIG_DB_NUM=19
 #cronjobs
 CRON_JOBS=()
 
@@ -295,6 +295,7 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 		interval="*";
 		local_folder="";
 		backup_host="";
+		backup_port="";
 		backup_folder="";
 		remote_log_file="*";
 		backup_type="";	
@@ -312,11 +313,12 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				interval=${CONFIG_ARRAY[5]};
 				local_folder=${CONFIG_ARRAY[6]};
 				backup_host=${CONFIG_ARRAY[7]};
-				backup_folder=${CONFIG_ARRAY[8]};
-				remote_log_file=${CONFIG_ARRAY[9]};
-				backup_type=${CONFIG_ARRAY[10]};
-				backup_save=${CONFIG_ARRAY[11]};
-				time_save=${CONFIG_ARRAY[12]};
+				backup_port=${CONFIG_ARRAY[8]};
+				backup_folder=${CONFIG_ARRAY[9]};
+				remote_log_file=${CONFIG_ARRAY[10]};
+				backup_type=${CONFIG_ARRAY[11]};
+				backup_save=${CONFIG_ARRAY[12]};
+				time_save=${CONFIG_ARRAY[13]};
 				#validate the backup_type
                                 backup_type=$(validateBackupType "$backup_type")
                                 if [ "$backup_type" = "ERROR" ]; then
@@ -330,6 +332,12 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
                                         echo "ERROR: config file invalid!"
                                         exit 1
                                 fi
+				#backup_port
+				has_backup_port=$(validateBackupSave "$backup_port")
+				if [ "$has_backup_port" = "ERROR" ]; then
+					echo "ERROR: config file invalid!"
+					exit 1
+				fi
                                 #time_save
                                 has_time_save=$(validateTimeSave "$time_save")
                                 if [ "$has_time_save" = "ERROR" ]; then
@@ -349,8 +357,11 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				head="#${schedule}\n#!/bin/bash\n";
 				dup="";
 				if [ "$remote_log_file" != '*' ]; then
-				
-					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${FILE_TEMP_LOG}${i}";
+					if [ "$backup_port" != '*' ]; then	
+						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}:${backup_port}/${backup_folder} > ${FILE_TEMP_LOG}${i}";			
+					else
+						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${FILE_TEMP_LOG}${i}";
+					fi
 					#add into log
 					#cat ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}
 					temp_log="$(which cat) ${FILE_TEMP_LOG}${i} >> ${LOG_DIR}${LOG_FILE}"
@@ -360,22 +371,41 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 					fi
 					
 					dup=$dup'\n'$temp_log
-					log_copy="$(which scp) ${FILE_TEMP_LOG}${i} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${FILE_TEMP_LOG}${i}";
+					log_copy="";
+					if [ "$backup_port" != '*' ]; then
+						log_copy="$(which scp) -P ${backup_port} ${FILE_TEMP_LOG}${i} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${FILE_TEMP_LOG}${i}";
+
+					else
+						log_copy="$(which scp) ${FILE_TEMP_LOG}${i} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${FILE_TEMP_LOG}${i}";
+					fi
 					dup=$dup'\n'$log_copy		
 
 				else
-					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
-
+					if [ "$backup_port" != '*' ]; then
+						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}:${backup_port}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					else
+						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					fi
 				fi
 
 				if [ "$has_backup_save" = true ]; then
-					b="$(which duplicity) remove-all-but-n-full ${backup_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					b="";
+					if [ "$backup_port" != '*' ]; then
+						b="$(which duplicity) remove-all-but-n-full ${backup_save} --force sftp://${backup_host}:${backup_port}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					else	
+						b="$(which duplicity) remove-all-but-n-full ${backup_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					fi
 					dup=$dup'\n'$b;
 					#echo  -e "$dup";
 				fi
 
 				if [ "$has_time_save" = true ]; then
-					b="$(which duplicity) remove-older-than ${time_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					b="";
+					if [ "$backup_port" != '*' ]; then
+						b="$(which duplicity) remove-older-than ${time_save} --force sftp://${backup_host}:${backup_port}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					else
+						b="$(which duplicity) remove-older-than ${time_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					fi
 					dup=$dup'\n'$b;
 					#echo -e "$dup";		
 				fi
@@ -420,6 +450,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 		dbname=""
 		local_folder=""
 		backup_host=""
+		backup_port=""
 		backup_folder=""
 		remote_log_file=""
 		backup_type=""
@@ -440,13 +471,14 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 				dbname=${DB_ARRAY[9]};
 				local_folder=${DB_ARRAY[10]};
 				backup_host=${DB_ARRAY[11]};
-				backup_folder=${DB_ARRAY[12]};
-				remote_log_file=${DB_ARRAY[13]};
-				backup_type=${DB_ARRAY[14]};
-				backup_save=${DB_ARRAY[15]};
-				time_save=${DB_ARRAY[16]};
-				dump_save=${DB_ARRAY[17]};
-				#TODO:need to finish database
+				backup_port=${DB_ARRAY[12]};
+				backup_folder=${DB_ARRAY[13]};
+				remote_log_file=${DB_ARRAY[14]};
+				backup_type=${DB_ARRAY[15]};
+				backup_save=${DB_ARRAY[16]};
+				time_save=${DB_ARRAY[17]};
+				dump_save=${DB_ARRAY[18]};
+
 				#validate these variables
 				#db_host
 				if [ "$db_host" = '*' ]; then
@@ -470,6 +502,12 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 				#backup_save
 				has_backup_save=$(validateBackupSave "$backup_save")
 				if [ "$has_backup_save" = "ERROR" ]; then
+					echo "ERROR: dbconfig file invalid!"
+					exit 1
+				fi
+				#backup_port
+				has_backup_port=$(validateBackupSave "$backup_port")
+				if [ "$has_backup_port" = "ERROR" ]; then
 					echo "ERROR: dbconfig file invalid!"
 					exit 1
 				fi
@@ -540,7 +578,11 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 				#duplicity part
 				dup=""
 				if [ "$remote_log_file" != '*' ]; then
-					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${DB_TEMP_LOG}${j}";
+					if [ "$backup_port" != '*' ]; then
+						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}:${backup_port}/${backup_folder} > ${DB_TEMP_LOG}${j}";
+					else		
+						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${DB_TEMP_LOG}${j}";
+					fi
 					#add into log
                                         #cat ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}
                                         temp_log="$(which cat) ${DB_TEMP_LOG}${j} >> ${LOG_DIR}${LOG_FILE}"
@@ -549,19 +591,41 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
                                                 temp_log=$temp_log'\n'$temp_interval
                                         fi
 					dup=$dup'\n'$temp_log
-                                        log_copy="$(which scp) ${DB_TEMP_LOG}${j} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${DB_TEMP_LOG}${j}";
-                                        dup=$dup'\n'$log_copy
+					log_copy="";
+
+					if [ "$backup_port" != '*' ]; then
+					
+						log_copy="$(which scp) -P ${backup_port} ${DB_TEMP_LOG}${j} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${DB_TEMP_LOG}${j}";
+					else
+                                        	log_copy="$(which scp) ${DB_TEMP_LOG}${j} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${DB_TEMP_LOG}${j}";
+                                        fi
+					
+					dup=$dup'\n'$log_copy
 				else
-					dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					if [ "$backup_port" != '*' ]; then
+						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}:${backup_port}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					else
+						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					fi
 				fi
 				if [ "$has_backup_save" = true ]; then
-					b="$(which duplicity) remove-all-but-n-full ${backup_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					b="";
+					if [ "$backup_port" != '*' ]; then
+						b="$(which duplicity) remove-all-but-n-full ${backup_save} --force sftp://${backup_host}:${backup_port}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					else
+						b="$(which duplicity) remove-all-but-n-full ${backup_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					fi
 					dup=$dup'\n'$b;
 				fi
 
 
 				if [ "$has_time_save" = true ]; then
-					b="$(which duplicity) remove-older-than ${time_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					b="";
+					if [ "$backup_port" != '*' ]; then
+						b="$(which duplicity) remove-older-than ${time_save} --force sftp://${backup_host}:${backup_port}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					else
+						b="$(which duplicity) remove-older-than ${time_save} --force sftp://${backup_host}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
+					fi
 					dup=$dup'\n'$b;
 					#echo -e "$dup";
 				fi
