@@ -356,6 +356,7 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				schedule="${m} ${h} ${dom} ${mon} ${dow}";
 				head="#${schedule}\n#!/bin/bash\n";
 				dup="";
+				log_copy="";
 				if [ "$remote_log_file" != '*' ]; then
 					if [ "$backup_port" != '*' ]; then	
 						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}:${backup_port}/${backup_folder} > ${FILE_TEMP_LOG}${i}";			
@@ -371,14 +372,14 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 					fi
 					
 					dup=$dup'\n'$temp_log
-					log_copy="";
+
 					if [ "$backup_port" != '*' ]; then
 						log_copy="$(which scp) -P ${backup_port} ${FILE_TEMP_LOG}${i} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${FILE_TEMP_LOG}${i}";
 
 					else
 						log_copy="$(which scp) ${FILE_TEMP_LOG}${i} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${FILE_TEMP_LOG}${i}";
 					fi
-					dup=$dup'\n'$log_copy		
+					#dup=$dup'\n'$log_copy		
 
 				else
 					if [ "$backup_port" != '*' ]; then
@@ -408,6 +409,9 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 					fi
 					dup=$dup'\n'$b;
 					#echo -e "$dup";		
+				fi
+				if [ "$log_copy" != "" ]; then
+					dup=$dup'\n'$log_copy;
 				fi
 				
 				context=$head$dup;
@@ -577,6 +581,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 				fi
 				#duplicity part
 				dup=""
+				log_copy=""
 				if [ "$remote_log_file" != '*' ]; then
 					if [ "$backup_port" != '*' ]; then
 						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}:${backup_port}/${backup_folder} > ${DB_TEMP_LOG}${j}";
@@ -591,7 +596,6 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
                                                 temp_log=$temp_log'\n'$temp_interval
                                         fi
 					dup=$dup'\n'$temp_log
-					log_copy="";
 
 					if [ "$backup_port" != '*' ]; then
 					
@@ -600,7 +604,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
                                         	log_copy="$(which scp) ${DB_TEMP_LOG}${j} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${DB_TEMP_LOG}${j}";
                                         fi
 					
-					dup=$dup'\n'$log_copy
+					#dup=$dup'\n'$log_copy
 				else
 					if [ "$backup_port" != '*' ]; then
 						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}:${backup_port}/${backup_folder} >> ${LOG_DIR}${LOG_FILE}";
@@ -629,6 +633,11 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 					dup=$dup'\n'$b;
 					#echo -e "$dup";
 				fi
+
+				if [ "$log_copy" != "" ]; then
+					dup=$dup'\n'$log_copy
+				fi
+
 				context=$head'\n'$dump_file'\n'$dump'\n'$dup;
 				#echo -e "$context"
 				dir=$(writeIntoFile "$context")
