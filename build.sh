@@ -9,6 +9,7 @@ FILE_MODE=1
 DATABASE_MODE=0
 
 #related files
+SETTINGS=./settings
 ENCRYPTION_FILE=./encryption
 CONFIG_FILE=./config_file
 CONFIG_DB=./config_db
@@ -183,6 +184,13 @@ if [ ! -f $ENCRYPTION_FILE ]; then
 	exit 1;
 fi
 
+#Ensure we have settings file
+if [ ! -f $SETTINGS ]; then
+	echo "Error: settings file not found!";
+	exit 1;
+fi
+
+
 
 #Instruction
 INSTRUCTION="
@@ -258,6 +266,39 @@ else
 	exit 1;
 fi
 
+
+#read settings file
+while read LINE
+do
+	if [[ $LINE == SCRIPT_DIR* ]]; then
+		IFS='=' read -a SCRIPT_DIR_ARRAY <<< "$LINE";
+		if [ ${#SCRIPT_DIR_ARRAY[@]} == 2 ]; then
+			SCRIPT_DIR=${SCRIPT_DIR_ARRAY[1]};
+		fi
+	elif [[ $LINE == LOG_DIR* ]]; then
+		IFS='=' read -a LOG_DIR_ARRAY <<< "$LINE";
+		if [ ${#LOG_DIR_ARRAY[@]} == 2 ]; then
+			LOG_DIR=${LOG_DIR_ARRAY[1]};
+		fi	
+	elif [[ $LINE == LOG_FILE* ]]; then
+		IFS='=' read -a LOG_FILE_ARRAY <<< "$LINE";
+		if [ ${#LOG_FILE_ARRAY[@]} == 2 ]; then
+			LOG_FILE=${LOG_FILE_ARRAY[1]};
+		fi
+	elif [[ $LINE == SLOG_DIR* ]]; then
+		IFS='=' read -a SLOG_DIR_ARRAY <<< "$LINE";
+		if [ ${#SLOG_DIR_ARRAY[@]} == 2 ]; then
+			SLOG_DIR=${SLOG_DIR_ARRAY[1]};
+		fi
+	elif [[ $LINE == SLOG_FILE* ]]; then
+		IFS='=' read -a SLOG_FILE_ARRAY <<< "$LINE";
+		if [ ${#SLOG_FILE_ARRAY[@]} == 2 ]; then
+			SLOG_FILE=${SLOG_FILE_ARRAY[1]};
+		fi
+	fi
+done < $SETTINGS
+
+
 #read encryption file
 while read LINE
 do 
@@ -268,7 +309,7 @@ do
 			#echo ${ENCRYPTION_ARRAY[1]}; 
 			PASSPHRASE=${ENCRYPTION_ARRAY[1]};
 	           	#echo $PASSPHRASE;
-		fi
+	fi
 	elif [[ $LINE == KEY* ]]; then
 		IFS='=' read -a ENCRYPTION_ARRAY <<< "$LINE";
 		if [ ${#ENCRYPTION_ARRAY[@]} == 2 ]; then

@@ -1,0 +1,11 @@
+#directory that stores all the script
+SCRIPT_DIR=/root/backups/
+#directory that stores all the log about duplicity
+LOG_DIR=/var/log/backups/
+#file that record the file log
+LOG_FILE=etc.log
+#directory that stores all the log about script
+SLOG_DIR=/var/log/backups/
+#file that record the db log
+SLOG_FILE=scripts.log
+
