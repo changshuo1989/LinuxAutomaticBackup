@@ -365,38 +365,38 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				time_save=${CONFIG_ARRAY[14]};
 				#name
 				if [ -z "$name" ]; then
-					echo "Error: config file invalid!"
+					echo "Error: config file invalid! name"
 					exit 1
 				fi
 				#validate the backup_type
                                 backup_type=$(validateBackupType "$backup_type")
                                 if [ "$backup_type" = "ERROR" ]; then
-                                        echo "Error: config file invalid!"
+                                        echo "Error: config file invalid! backup_type"
                                         exit 1
                                 fi
 				
 				#backup_save
                                 has_backup_save=$(validateBackupSave "$backup_save")
                                 if [ "$has_backup_save" = "ERROR" ]; then
-                                        echo "ERROR: config file invalid!"
+                                        echo "ERROR: config file invalid! backup_save"
                                         exit 1
                                 fi
 				#backup_port
 				has_backup_port=$(validateBackupSave "$backup_port")
 				if [ "$has_backup_port" = "ERROR" ]; then
-					echo "ERROR: config file invalid!"
+					echo "ERROR: config file invalid! backup_port"
 					exit 1
 				fi
                                 #time_save
                                 has_time_save=$(validateTimeSave "$time_save")
                                 if [ "$has_time_save" = "ERROR" ]; then
-                                        echo "ERROR: config file invalid!"
+                                        echo "ERROR: config file invalid! time_save"
                                         exit 1
                                 fi
 				#interval
 				has_interval=$(validateBackupSave "$interval")
 				if [ "$has_interval" = "ERROR" ]; then
-					echo "ERROR: config file invalid!"
+					echo "ERROR: config file invalid! interval"
 					exit 1
 					
 				fi
