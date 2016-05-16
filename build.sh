@@ -19,8 +19,8 @@ PASSPHRASE="Unknown"
 KEY="Unknown"
 
 #config variables
-CONFIG_FILE_NUM=14
-CONFIG_DB_NUM=19
+CONFIG_FILE_NUM=15
+CONFIG_DB_NUM=20
 #cronjobs
 CRON_JOBS=()
 
@@ -48,11 +48,12 @@ SLOG_FILE=scripts.log
 function writeIntoFile(){
 	#get parameters
 	content="$1"
+	job_name="$2"
 
 	#create directory
 	mkdir -p $SCRIPT_DIR
 	#naming script file based on timestamp
-	desdir=${SCRIPT_DIR}$(date +%Y-%m-%d-%H-%M-%S-%N).sh
+	desdir=${SCRIPT_DIR}/${job_name}_$(date +%Y-%m-%d-%H-%M-%S-%N).sh
 	#echo "$desdir"
 	touch ${desdir}
 	if [ -f "$desdir" ]; then
@@ -328,6 +329,7 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 	while read LINE
 	do
 		#configuration variables
+		name="";
 		m="*";
 		h="*";
 		dom="*";
@@ -346,20 +348,26 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 			#read variables from config file
 			IFS=' ' read -a CONFIG_ARRAY <<< "$LINE";
 			if [ ${#CONFIG_ARRAY[@]} == $CONFIG_FILE_NUM ]; then
-				m=${CONFIG_ARRAY[0]};
-				h=${CONFIG_ARRAY[1]};
-				dom=${CONFIG_ARRAY[2]};
-				mon=${CONFIG_ARRAY[3]};
-				dow=${CONFIG_ARRAY[4]};
-				interval=${CONFIG_ARRAY[5]};
-				local_folder=${CONFIG_ARRAY[6]};
-				backup_host=${CONFIG_ARRAY[7]};
-				backup_port=${CONFIG_ARRAY[8]};
-				backup_folder=${CONFIG_ARRAY[9]};
-				remote_log_file=${CONFIG_ARRAY[10]};
-				backup_type=${CONFIG_ARRAY[11]};
-				backup_save=${CONFIG_ARRAY[12]};
-				time_save=${CONFIG_ARRAY[13]};
+				name=${CONFIG_ARRAY[0]};
+				m=${CONFIG_ARRAY[1]};
+				h=${CONFIG_ARRAY[2]};
+				dom=${CONFIG_ARRAY[3]};
+				mon=${CONFIG_ARRAY[4]};
+				dow=${CONFIG_ARRAY[5]};
+				interval=${CONFIG_ARRAY[6]};
+				local_folder=${CONFIG_ARRAY[7]};
+				backup_host=${CONFIG_ARRAY[8]};
+				backup_port=${CONFIG_ARRAY[9]};
+				backup_folder=${CONFIG_ARRAY[10]};
+				remote_log_file=${CONFIG_ARRAY[11]};
+				backup_type=${CONFIG_ARRAY[12]};
+				backup_save=${CONFIG_ARRAY[13]};
+				time_save=${CONFIG_ARRAY[14]};
+				#name
+				if [ -z "$name" ]; then
+					echo "Error: config file invalid!"
+					exit 1
+				fi
 				#validate the backup_type
                                 backup_type=$(validateBackupType "$backup_type")
                                 if [ "$backup_type" = "ERROR" ]; then
@@ -411,7 +419,8 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 						temp_interval="$(which echo) \"Interval ${interval}\" >> ${FILE_TEMP_LOG}${i}"
 						temp_log=$temp_log'\n'$temp_interval
 					fi
-					
+					temp_name="$(which echo) \"Name ${name}\" >> ${FILE_TEMP_LOG}${i}"
+					temp_log=$temp_log'\n'$temp_name					
 					dup=$dup'\n'$temp_log
 
 					if [ "$backup_port" != '*' ]; then
@@ -457,7 +466,7 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 				
 				context=$head$dup;
 				#echo -e "$context";
-				dir=$(writeIntoFile "$context")
+				dir=$(writeIntoFile "$context" "$name")
 				addIntoCrontab "$dir" "$schedule" "$TEMP_CRONTAB"
 
 				#echo $dir
@@ -483,6 +492,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 	while read LINE
 	do
 		#configuration variables
+		name="";
 		m="*"
 		h="*"
 		dom="*"
@@ -504,27 +514,34 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 		if [[ ! $LINE == \#* ]]; then
 			IFS=' ' read -a DB_ARRAY <<< "$LINE";
 			if [ ${#DB_ARRAY[@]} == $CONFIG_DB_NUM ]; then
-				m=${DB_ARRAY[0]};
-				h=${DB_ARRAY[1]};
-				dom=${DB_ARRAY[2]};
-				mon=${DB_ARRAY[3]};
-				dow=${DB_ARRAY[4]};
-				interval=${DB_ARRAY[5]};
-				db_host=${DB_ARRAY[6]};
-				user_name=${DB_ARRAY[7]};
-				password=${DB_ARRAY[8]};
-				dbname=${DB_ARRAY[9]};
-				local_folder=${DB_ARRAY[10]};
-				backup_host=${DB_ARRAY[11]};
-				backup_port=${DB_ARRAY[12]};
-				backup_folder=${DB_ARRAY[13]};
-				remote_log_file=${DB_ARRAY[14]};
-				backup_type=${DB_ARRAY[15]};
-				backup_save=${DB_ARRAY[16]};
-				time_save=${DB_ARRAY[17]};
-				dump_save=${DB_ARRAY[18]};
+				name=${DB_ARRAY[0]};
+				m=${DB_ARRAY[1]};
+				h=${DB_ARRAY[2]};
+				dom=${DB_ARRAY[3]};
+				mon=${DB_ARRAY[4]};
+				dow=${DB_ARRAY[5]};
+				interval=${DB_ARRAY[6]};
+				db_host=${DB_ARRAY[7]};
+				user_name=${DB_ARRAY[8]};
+				password=${DB_ARRAY[9]};
+				dbname=${DB_ARRAY[10]};
+				local_folder=${DB_ARRAY[11]};
+				backup_host=${DB_ARRAY[12]};
+				backup_port=${DB_ARRAY[13]};
+				backup_folder=${DB_ARRAY[14]};
+				remote_log_file=${DB_ARRAY[15]};
+				backup_type=${DB_ARRAY[16]};
+				backup_save=${DB_ARRAY[17]};
+				time_save=${DB_ARRAY[18]};
+				dump_save=${DB_ARRAY[19]};
 
 				#validate these variables
+				#name
+                                if [ -z "$name" ]; then
+                                        echo "Error: config file invalid!"
+                                        exit 1
+                                fi
+
 				#db_host
 				if [ "$db_host" = '*' ]; then
 					db_host="localhost"
@@ -636,6 +653,9 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
                                                 temp_interval="$(which echo) \"Interval ${interval}\" >> ${DB_TEMP_LOG}${j}"
                                                 temp_log=$temp_log'\n'$temp_interval
                                         fi
+					temp_name="$(which echo) \"Name ${name}\" >> ${DB_TEMP_LOG}${j}"
+                                        temp_log=$temp_log'\n'$temp_name
+
 					dup=$dup'\n'$temp_log
 
 					if [ "$backup_port" != '*' ]; then
@@ -681,7 +701,7 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 
 				context=$head'\n'$dump_file'\n'$dump'\n'$dup;
 				#echo -e "$context"
-				dir=$(writeIntoFile "$context")
+				dir=$(writeIntoFile "$context" "$name")
 				addIntoCrontab "$dir" "$schedule" "$TEMP_CRONTAB"
 				j=$((j+1));
 			else

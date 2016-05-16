@@ -1,4 +1,6 @@
 #!/bin/bash
+NAME=$1
+
 SETTINGS=./settings
 SCRIPT_DIR=/root/backups/
 LOG_DIR=/var/log/backups/
@@ -7,7 +9,6 @@ SLOG_DIR=/var/log/backups/
 SLOG_FILE=scripts.log
 
 TEMP_CRONTAB=mycron
-
 
 
 function copyCrontab(){
@@ -75,27 +76,49 @@ do
         fi
 done < $SETTINGS
 
-echo -e "folders and files are:\nSCRIPT_DIR=${SCRIPT_DIR}\nLOG_DIR=${LOG_DIR}\nLOG_FILE=${LOG_FILE}\nSLOG_DIR=${SLOG_DIR}\nSLOG_FILE=${SLOG_FILE}"
-read -p "Are you sure you have checked those folder and files? [Y/N]" USER_RESPONSE
-if echo $USER_RESPONSE | grep -iq Y; then
-	:
-else
-	echo "Please check these folders and files to see if there is anything important you want to keep!"
-	exit 1;
-fi
+
+#echo -e "folders and files are:\nSCRIPT_DIR=${SCRIPT_DIR}\nLOG_DIR=${LOG_DIR}\nLOG_FILE=${LOG_FILE}\nSLOG_DIR=${SLOG_DIR}\nSLOG_FILE=${SLOG_FILE}"
+#read -p "Are you sure you have checked those folder and files? [Y/N]" USER_RESPONSE
+#if echo $USER_RESPONSE | grep -iq Y; then
+#	:
+#else
+#	echo "Please check these folders and files to see if there is anything important you want to keep!"
+#	exit 1;
+#fi
 
 
 copyCrontab
-#find all the script names to delete them in the crontab
-for entry in "$SCRIPT_DIR"/*
-do
-	file_name=${entry##*/}
-	removeFromCrontab "$file_name"
-done
-loadCrontab
+if [ -z "$NAME" ]; then
+
+	#find all the script names to delete them in the crontab
+	for entry in "$SCRIPT_DIR"/*
+	do
+		file_name=${entry##*/}
+		removeFromCrontab "$file_name"
+	done
+	loadCrontab
 
 
-#remove script files and logs
-$(which rm) -rf ${SCRIPT_DIR}
-$(which rm) ${LOG_DIR}/${LOG_FILE}
-$(which rm) ${SLOG_DIR}/${SLOG_FILE}
+	#remove script files and logs
+	$(which rm) -rf ${SCRIPT_DIR}
+	$(which rm) ${LOG_DIR}/${LOG_FILE}
+	$(which rm) ${SLOG_DIR}/${SLOG_FILE}
+
+else
+	#find the right script to delete it in the crontab
+	right_file=""
+	for entry in "$SCRIPT_DIR"/*
+	do
+		file_name=${entry##*/}
+		if [[ $file_name == "${NAME}_"* ]]; then
+			removeFromCrontab "$file_name"
+			right_file=$file_name
+		fi
+	done
+	loadCrontab
+
+	#remove that script
+	if [ ! -z "$right_file" ]; then
+		$(which rm) -rf ${SCRIPT_DIR}/${right_file}
+	fi
+fi
