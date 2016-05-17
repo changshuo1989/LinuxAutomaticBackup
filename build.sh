@@ -252,6 +252,11 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" = 1 ]; then
                 echo "Error: config_db file not found!";
                 exit 1;
         fi
+	#Ensure we have mysqldump
+	if [ "`which mysqldump`" = "" ]; then
+		echo "Error: You have to install mysqldump!";
+		exit 1;
+	fi
 else
         usage
         exit 1
@@ -424,10 +429,10 @@ if [ "$FILE_MODE" = 1 ] && [ "$DATABASE_MODE" = 0 ]; then
 					dup=$dup'\n'$temp_log
 
 					if [ "$backup_port" != '*' ]; then
-						log_copy="$(which scp) -P ${backup_port} ${FILE_TEMP_LOG}${i} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${FILE_TEMP_LOG}${i}";
+						log_copy="$(which scp) -P ${backup_port} ${FILE_TEMP_LOG}${i} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE}\nrm -rf ${FILE_TEMP_LOG}${i}";
 
 					else
-						log_copy="$(which scp) ${FILE_TEMP_LOG}${i} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${FILE_TEMP_LOG}${i}";
+						log_copy="$(which scp) ${FILE_TEMP_LOG}${i} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE}\nrm -rf ${FILE_TEMP_LOG}${i}";
 					fi
 					#dup=$dup'\n'$log_copy		
 
@@ -633,18 +638,18 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 				fi
 
 				#remove previous files(based on days)
-				if [ "$has_dump_save" = true ]; then 
+				if [ "$has_dump_save" = true ]; then
 					remove_old_dumps="$(which find) ${dump_dir}* -mmin +${dump_save} -type f -delete"
-					dump=$remove_old_dumps' \n'$dump
+					dump=$remove_old_dumps'\n'$dump
 				fi
 				#duplicity part
 				dup=""
 				log_copy=""
 				if [ "$remote_log_file" != '*' ]; then
 					if [ "$backup_port" != '*' ]; then
-						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}:${backup_port}/${backup_folder} > ${DB_TEMP_LOG}${j}";
+						dup="export PASSPHRASE=\"${PASSPHRASE}\"\n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}:${backup_port}/${backup_folder} > ${DB_TEMP_LOG}${j}";
 					else		
-						dup="export PASSPHRASE=\"${PASSPHRASE}\" \n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${DB_TEMP_LOG}${j}";
+						dup="export PASSPHRASE=\"${PASSPHRASE}\"\n$(which duplicity) ${backup_type} --encrypt-key ${KEY} ${local_folder} sftp://${backup_host}/${backup_folder} > ${DB_TEMP_LOG}${j}";
 					fi
 					#add into log
                                         #cat ${TEMP_LOG} >> ${LOG_DIR}${LOG_FILE}
@@ -660,9 +665,9 @@ elif [ "$FILE_MODE" = 0 ] && [ "$DATABASE_MODE" == 1 ]; then
 
 					if [ "$backup_port" != '*' ]; then
 					
-						log_copy="$(which scp) -P ${backup_port} ${DB_TEMP_LOG}${j} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${DB_TEMP_LOG}${j}";
+						log_copy="$(which scp) -P ${backup_port} ${DB_TEMP_LOG}${j} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE}\nrm -rf ${DB_TEMP_LOG}${j}";
 					else
-                                        	log_copy="$(which scp) ${DB_TEMP_LOG}${j} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE} \nrm -rf ${DB_TEMP_LOG}${j}";
+                                        	log_copy="$(which scp) ${DB_TEMP_LOG}${j} ${backup_host}:${remote_log_file} >> ${LOG_DIR}${LOG_FILE}\nrm -rf ${DB_TEMP_LOG}${j}";
                                         fi
 					
 					#dup=$dup'\n'$log_copy
